@@ -1,0 +1,58 @@
+services:
+  db-golyanytsky:
+    image: mysql:8.0
+    container_name: db-golyanytsky
+    restart: unless-stopped
+    # env_file: .env
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wppass123
+      MYSQL_ROOT_PASSWORD: root123
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  wordpress-golyanytsky:
+    depends_on:
+      - db-golyanytsky
+    image: wordpress:php8.2-fpm-alpine
+    container_name: wordpress-golyanytsky
+    restart: unless-stopped
+    # env_file: .env
+    environment:
+      WORDPRESS_DB_HOST: db-golyanytsky:3306
+      WORDPRESS_DB_USER: wpuser
+      WORDPRESS_DB_PASSWORD: wppass123
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - app-network
+
+  webserver-golyanytsky:
+    depends_on:
+      - wordpress-golyanytsky
+    image: nginx:alpine
+    container_name: webserver-golyanytsky
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      # Якщо використовуєте SSL, додайте тут сертифікати:
+      # - ./nginx-conf/student.key:/etc/ssl/certs/student.key
+      # - ./nginx-conf/student.crt:/etc/ssl/certs/student.crt
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+  wordpress_data:
+
+networks:
+  app-network:
+    driver: bridge
